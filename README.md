@@ -1,0 +1,2 @@
+# asterisk
+Labi po OOP
