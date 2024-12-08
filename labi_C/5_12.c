@@ -25,17 +25,22 @@ int main(int argc, char *argv[]) {
     } // counting total lenght of command */
     
     char *bobik = malloc(1024);
-    
+    if(!bobik) {
+        printf("prog: error allocating memory\n");
+        exit(EXIT_FAILURE);
+    } // if error with malloc
     for(int i = 1; i < argc; i++) { 
         strcat(bobik, argv[i]);
         if(i != (argc-1)) strcat(bobik, " ");
     }
     
-    char status = system(bobik);
-    if(status == 0) {
-        printf("\nexited(%d)", status);
+    int status = system(bobik);
+    
+    if(WEXITSTATUS(status) == 0) {
+        printf("\nexited(%d)", WEXITSTATUS(status));
     }
     else {
-        printf("\nkilled(%d)", status);
-    }
+        printf("\nkilled(%d)", WEXITSTATUS(status));
+    } 
+    return 0;
 }
