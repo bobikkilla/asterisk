@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/85b3264a-780e-45ca-a97f-2c7d45edf617)<h1> Лабы по ООП за 5 семак</h1>
+<h1> Лабы по ООП за 5 семак</h1>
 
 <h2> 1 лабораторка </h2>
 
