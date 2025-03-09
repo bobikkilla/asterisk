@@ -6,3 +6,21 @@ to quit» и после этого ничего не делает, но и не 
 потребляет процессорное время.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+void handle_sigint(int sig) {
+    printf("\nGood bye\n");
+    exit(0); 
+}
+
+int main() {
+    signal(SIGINT, handle_sigint);
+    printf("press Ctrl + C to quit\n");
+    while (1) {
+        pause(); 
+    }
+    return 0;
+}
