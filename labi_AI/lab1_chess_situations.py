@@ -5,7 +5,7 @@ from itertools import product
 class ChessBoard:
     def __init__(self, root):
         self.root = root
-        self.root.title("Chess Checkmate/Stalemate Finder")
+        self.root.title("Checkmate&Stalemate Finder")
         self.canvas = tk.Canvas(root, width=400, height=400)
         self.canvas.pack()
 
@@ -39,7 +39,7 @@ class ChessBoard:
                 y1 = row * 50
                 x2 = x1 + 50
                 y2 = y1 + 50
-                color = "yellow" if (row + col) % 2 == 0 else "brown"
+                color = "light goldenrod" if (row + col) % 2 == 0 else "saddle brown"
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
     def place_king(self, event):
@@ -233,14 +233,14 @@ class ChessBoard:
         r, c = pos
         x = c * 50 + 25
         y = r * 50 + 25
-        self.canvas.create_text(x, y, text=symbol, font=("Arial", 30), tags="additional")
+        self.canvas.create_text(x, y, text=symbol, font=("Pecita", 30), tags="additional")
 
     def get_piece_symbol(self, piece_type):
         symbols = {
-            'Queen': '♛',
-            'Rook': '♜',
-            'Bishop': '♝',
-            'Knight': '♞'
+            'Queen': '♕',
+            'Rook': '♖',
+            'Bishop': '♗',
+            'Knight': '♘'
         }
         return symbols.get(piece_type, '?')
 
