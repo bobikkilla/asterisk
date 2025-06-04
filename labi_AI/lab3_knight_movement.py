@@ -118,7 +118,7 @@ class KnightTourApp:
                 y1 = i * cell_size
                 x2 = x1 + cell_size
                 y2 = y1 + cell_size
-                color = "white" if (i + j) % 2 else "lightgray"
+                color = "light goldenrod" if (i + j) % 2 else "saddle brown"
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
         for idx, (x, y) in enumerate(self.path):
