@@ -1,0 +1,26 @@
+# Формат: условие => рекомендация
+# Ключевые слова: action, story, singleplayer, puzzles, horror, racing, strategy, fantasy, mobile, budget
+
+action=yes and horror=no => God of War (PS5/PC)
+action=yes and horror=yes => Resident Evil 4 Remake
+action=yes => Doom Eternal
+
+story=yes or fantasy=yes =>
+    if singleplayer=yes then The Witcher 3: Wild Hunt
+    else Mass Effect Legendary Edition
+
+puzzles=yes =>
+    if mobile=yes then Monument Valley
+    else Portal 2
+
+racing=yes => Forza Horizon 5
+
+strategy=yes =>
+    if budget=no then Crusader Kings 3
+    else Age of Empires II HD
+
+mobile=yes => Genshin Impact
+
+budget=no => Stardew Valley
+
+default => Minecraft
