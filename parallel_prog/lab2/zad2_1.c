@@ -17,18 +17,16 @@ double c[M];
 void initialize() {
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            A[i][j] = i + j * 0.1; // arbitrary values
+            A[i][j] = 1; // filling the matrix
         }
     }
     for (int j = 0; j < N; j++) {
-        b[j] = j * 0.5 + 1.0;      // arbitrary values
+        b[j] = 1;      // filling the vector
     }
 }
 
 int main() {
     initialize();
-
-    double start_time = omp_get_wtime();
 
     // Sequential matrix-vector multiplication
     for (int i = 0; i < M; i++) {
@@ -37,10 +35,6 @@ int main() {
             c[i] += A[i][j] * b[j];
         }
     }
-
-    double end_time = omp_get_wtime();
-
-    printf("Sequential execution time: %.5f seconds\n", end_time - start_time);
 
     // Print first 3 elements of result for verification
     printf("c[0] = %.6f\n", c[0]);
