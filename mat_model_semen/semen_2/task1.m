@@ -60,3 +60,19 @@ fprintf('Радиус верхнего основания r = %.2f м\n', r);
 fprintf('Высота H = %.2f м\n', H);
 fprintf('Длина образующей l = %.4f м\n', l);
 fprintf('Площадь боковой поверхности S = %.4f м²\n', S_lateral);
+
+% ========== Окружности оснований (для наглядности) ==========
+% Нижнее основание
+theta_base = linspace(0, 2*pi, 100);
+x_bottom = zeros(size(theta_base));
+y_bottom = R * cos(theta_base);
+z_bottom = R * sin(theta_base);
+plot3(x_bottom, y_bottom, z_bottom, 'r-', 'LineWidth', 2);
+
+% Верхнее основание
+x_top = H * ones(size(theta_base));
+y_top = r * cos(theta_base);
+z_top = r * sin(theta_base);
+plot3(x_top, y_top, z_top, 'g-', 'LineWidth', 2);
+
+legend('Боковая поверхность', 'Ось X', 'Основания (нижн. красн., верхн. зел.)', 'Location', 'best');
