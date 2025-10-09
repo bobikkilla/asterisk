@@ -1,1 +1,1 @@
-не все лабы за учёбу на математика в унике 
+not all labs while studying on maths bachelor 
