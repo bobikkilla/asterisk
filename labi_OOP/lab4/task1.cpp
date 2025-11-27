@@ -24,9 +24,9 @@ public:
             throw std::invalid_argument("Vector3D must have exactly 3 elements");
     }
 
-    // Copy constructor (IMPORTANT)
+    // Copy constructor
     Vector3D(const Vector3D& other)
-        : std::valarray<double>(3)   // создаём СВОЁ хранилище
+        : std::valarray<double>(3)   // for safety 
     {
         if (other.size() != 3)
             throw std::logic_error("Copy source is not size 3");

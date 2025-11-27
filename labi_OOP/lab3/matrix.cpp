@@ -23,7 +23,7 @@ void Matrix::copyFrom(const Matrix& other) {
 }
 
 // =================================================================
-// Constructors and Destructor (Rule of Five)
+// Constructors and Destructor
 // =================================================================
 
 // Default constructor (empty matrix)
@@ -44,10 +44,10 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> list) {
     rows_ = list.size();
     cols_ = list.begin()->size();
 
-    // Check for "ragged" array (rows of different sizes)
+    // Check for rows of different sizes
     for (const auto& row : list) {
         if (row.size() != cols_)
-            throw std::invalid_argument("Rows have different sizes (ragged array).");
+            throw std::invalid_argument("Rows have different sizes.");
     }
 
     allocate();

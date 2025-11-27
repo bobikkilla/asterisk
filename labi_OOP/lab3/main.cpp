@@ -6,12 +6,12 @@
 
 using namespace std;
 
-// Helper for floating point comparison with tolerance
+// Helper for float comparison with tolerance
 bool isApproxEqual(double a, double b, double tolerance = 1e-9) {
     return std::abs(a - b) <= tolerance;
 }
 
-// Helper for matrix comparison with tolerance (more robust than Matrix::operator==)
+// Helper for matrix comparison with tolerance
 bool isMatrixApproxEqual(const Matrix& m1, const Matrix& m2, double tolerance = 1e-9) {
     if (m1.rows() != m2.rows() || m1.cols() != m2.cols()) {
         return false;
@@ -92,13 +92,13 @@ void test_arithmetic() {
     Matrix E_expected = { {3, 4}, {5, 6} };
     cout << "Test 11: M + S - " << (isMatrixApproxEqual(E, E_expected) ? "[OK]" : "[FAIL]") << endl;
 
-    // 12. Matrix *= Scalar (Compound Assignment)
+    // 12. Matrix *= Scalar
     Matrix F = { {1, 1}, {1, 1} };
     F *= 3.0;
     Matrix F_expected = { {3, 3}, {3, 3} };
     cout << "Test 12: M *= S - " << (isMatrixApproxEqual(F, F_expected) ? "[OK]" : "[FAIL]") << endl;
     
-    // 13. Matrix += Matrix (Compound Assignment)
+    // 13. Matrix += Matrix
     A += B; // A is now C_expected
     cout << "Test 13: M += M - " << (isMatrixApproxEqual(A, C_expected) ? "[OK]" : "[FAIL]") << endl;
 
