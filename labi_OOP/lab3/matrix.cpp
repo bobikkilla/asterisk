@@ -1,7 +1,6 @@
 #include "matrix.h"
 #include <stdexcept>
 #include <iomanip>
-#include <cmath>
 
 // =================================================================
 // Support Functions
@@ -194,11 +193,13 @@ Matrix Matrix::operator+(double s) const {
     for (size_t i = 0; i < rows_ * cols_; ++i) r.data_[i] += s;
     return r;
 }
+
 Matrix Matrix::operator-(double s) const {
     Matrix r(*this);
     for (size_t i = 0; i < rows_ * cols_; ++i) r.data_[i] -= s;
     return r;
 }
+
 Matrix Matrix::operator*(double s) const {
     Matrix r(*this);
     for (size_t i = 0; i < rows_ * cols_; ++i) r.data_[i] *= s;

@@ -1,7 +1,6 @@
 #include "matrix.h"
 #include <iostream>
 #include <vector>
-#include <cmath>
 #include <sstream>
 
 using namespace std;
@@ -176,9 +175,8 @@ void test_exceptions() {
 void test_output() {
     cout << "--- Testing Output Operator (<<) ---" << endl;
     Matrix m = { {1.0, 2.5}, {3.14159, -4.0} };
-    cout << "Test 25: Output formatting (Should look aligned/clean):" << endl;
-    // The actual test is visual inspection, but we ensure it compiles and runs.
-    cout << m; 
+    cout << "Test 25: Output formatting:" << endl;
+    cout << m;
     cout << "[OK - Visual Check Required]" << endl;
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <initializer_list>
-#include <iomanip> // Included for friend function definition
+#include <iomanip> // for friend function definition
 
 class Matrix {
 private:
