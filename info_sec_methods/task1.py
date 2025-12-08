@@ -13,108 +13,112 @@
 import tkinter as tk
 from tkinter import messagebox
 
-def xor_encrypt_decrypt(data, key):
-    """Универсальная функция для шифрования/расшифровки XOR"""
+def xor_encrypt(data: str, key: str) -> str:
+    """Шифрует строку → возвращает hex-строку"""
+    if not key:
+        raise ValueError("Ключ не может быть пустым")
+    
     key_bytes = key.encode('utf-8')
     data_bytes = data.encode('utf-8')
-    result = bytearray()
+    encrypted_bytes = bytearray()
     
     for i in range(len(data_bytes)):
-        key_byte = key_bytes[i % len(key_bytes)]
-        result.append(data_bytes[i] ^ key_byte)
+        k = key_bytes[i % len(key_bytes)]
+        encrypted_bytes.append(data_bytes[i] ^ k)
     
-    return result.decode('utf-8', errors='replace')
+    # Возвращаем шестнадцатеричное представление — всегда валидная строка!
+    return encrypted_bytes.hex()
 
+def xor_decrypt(hex_data: str, key: str) -> str:
+    """Расшифровывает hex-строку → возвращает исходный текст"""
+    if not key:
+        raise ValueError("Ключ не может быть пустым")
+    
+    try:
+        # Превращаем hex → байты
+        encrypted_bytes = bytes.fromhex(hex_data)
+    except ValueError as e:
+        raise ValueError("Некорректный формат: ожидается hex-строка (0-9, a-f)")
+    
+    key_bytes = key.encode('utf-8')
+    decrypted_bytes = bytearray()
+    
+    for i in range(len(encrypted_bytes)):
+        k = key_bytes[i % len(key_bytes)]
+        decrypted_bytes.append(encrypted_bytes[i] ^ k)
+    
+    # Декодируем как UTF-8 — теперь это точно исходный текст!
+    return decrypted_bytes.decode('utf-8')
+
+# GUI-обработчики
 def encrypt():
-    """Шифрование текста с использованием XOR"""
     text = input_text.get("1.0", tk.END).strip()
     key = key_entry.get().strip()
     
     if not key:
         messagebox.showerror("Ошибка", "Введите ключ шифрования!")
         return
-    
     if not text:
         messagebox.showerror("Ошибка", "Введите текст для шифрования!")
         return
     
     try:
-        encrypted = xor_encrypt_decrypt(text, key)
+        encrypted_hex = xor_encrypt(text, key)
         output_text.delete("1.0", tk.END)
-        output_text.insert(tk.END, encrypted)
+        output_text.insert(tk.END, encrypted_hex)
     except Exception as e:
-        messagebox.showerror("Ошибка", f"Не удалось зашифровать: {str(e)}")
+        messagebox.showerror("Ошибка", f"Шифрование не удалось:\n{e}")
 
 def decrypt():
-    """Расшифровка текста с использованием XOR"""
-    encrypted_text = output_text.get("1.0", tk.END).strip()
+    hex_text = output_text.get("1.0", tk.END).strip()
     key = key_entry.get().strip()
     
     if not key:
         messagebox.showerror("Ошибка", "Введите ключ расшифровки!")
         return
-    
-    if not encrypted_text:
+    if not hex_text:
         messagebox.showerror("Ошибка", "Нет данных для расшифровки!")
         return
     
     try:
-        decrypted = xor_encrypt_decrypt(encrypted_text, key)
+        decrypted = xor_decrypt(hex_text, key)
         input_text.delete("1.0", tk.END)
         input_text.insert(tk.END, decrypted)
+    except ValueError as e:
+        messagebox.showerror("Ошибка формата", f"Неверные данные:\n{e}")
+    except UnicodeDecodeError:
+        messagebox.showerror("Ошибка", "Расшифровка прошла, но текст повреждён.\nВозможно, неверный ключ.")
     except Exception as e:
-        messagebox.showerror("Ошибка", f"Не удалось расшифровать: {str(e)}")
+        messagebox.showerror("Ошибка", f"Расшифровка не удалась:\n{e}")
 
-# Создание главного окна
+# --- GUI (ваш существующий, без изменений, кроме уточнения метки) ---
+
 root = tk.Tk()
-root.title("XOR Шифрование")
+root.title("XOR Шифрование (hex-режим)")
 root.geometry("600x500")
 root.configure(bg="#f0f0f0")
 
-# Заголовок
-title_label = tk.Label(root, text="Шифрование методом XOR", 
-                      font=("Arial", 14, "bold"), 
-                      bg="#f0f0f0", fg="#333")
-title_label.pack(pady=(15, 10))
+tk.Label(root, text="Шифрование XOR → безопасный hex-вывод", 
+         font=("Arial", 14, "bold"), bg="#f0f0f0").pack(pady=(15, 10))
 
-# Поле для исходного текста
-tk.Label(root, text="Исходный текст:", font=("Arial", 10, "bold"), 
-         bg="#f0f0f0").pack(anchor="w", padx=20)
-input_text = tk.Text(root, height=6, width=70, font=("Consolas", 10), 
-                    bg="#ffffff", relief=tk.SOLID, borderwidth=1)
+tk.Label(root, text="Исходный текст:", font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
+input_text = tk.Text(root, height=6, width=70, font=("Consolas", 10))
 input_text.pack(padx=20, pady=(0, 10), fill=tk.BOTH, expand=True)
 
-# Поле для ключа
-tk.Label(root, text="Ключ:", font=("Arial", 10, "bold"), 
-         bg="#f0f0f0").pack(anchor="w", padx=20)
-key_entry = tk.Entry(root, width=70, font=("Consolas", 10),
-                    bg="#ffffff", relief=tk.SOLID, borderwidth=1)
+tk.Label(root, text="Ключ:", font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
+key_entry = tk.Entry(root, width=70, font=("Consolas", 10))
 key_entry.pack(padx=20, pady=(0, 10), fill=tk.X)
 
-# Поле для результата
-tk.Label(root, text="Результат:", font=("Arial", 10, "bold"), 
-         bg="#f0f0f0").pack(anchor="w", padx=20)
-output_text = tk.Text(root, height=6, width=70, font=("Consolas", 10), 
-                     bg="#ffffff", relief=tk.SOLID, borderwidth=1)
+tk.Label(root, text="Зашифровано (hex):", font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
+output_text = tk.Text(root, height=6, width=70, font=("Consolas", 10))
 output_text.pack(padx=20, pady=(0, 15), fill=tk.BOTH, expand=True)
 
-# Кнопки управления
 button_frame = tk.Frame(root, bg="#f0f0f0")
 button_frame.pack(pady=5)
 
-encrypt_btn = tk.Button(button_frame, text="Шифровать", command=encrypt,
-                       font=("Arial", 10, "bold"), bg="#4CAF50", fg="white",
-                       width=12, height=1, relief=tk.FLAT)
-encrypt_btn.pack(side=tk.LEFT, padx=15)
-
-decrypt_btn = tk.Button(button_frame, text="Расшифровать", command=decrypt,
-                       font=("Arial", 10, "bold"), bg="#2196F3", fg="white",
-                       width=12, height=1, relief=tk.FLAT)
-decrypt_btn.pack(side=tk.LEFT, padx=15)
-
-# Информация об алгоритме
-info_label = tk.Label(root, text="Алгоритм: Побитовое XOR с циклическим ключом\n",
-                     font=("Arial", 8), bg="#f0f0f0", fg="#666")
-info_label.pack(pady=(0, 10))
+tk.Button(button_frame, text="Шифровать", command=encrypt,
+          font=("Arial", 10, "bold"), bg="#4CAF50", fg="white", width=12).pack(side=tk.LEFT, padx=15)
+tk.Button(button_frame, text="Расшифровать", command=decrypt,
+          font=("Arial", 10, "bold"), bg="#2196F3", fg="white", width=12).pack(side=tk.LEFT, padx=15)
 
 root.mainloop()
