@@ -26,7 +26,6 @@ def xor_encrypt(data: str, key: str) -> str:
         k = key_bytes[i % len(key_bytes)]
         encrypted_bytes.append(data_bytes[i] ^ k)
     
-    # Возвращаем шестнадцатеричное представление — всегда валидная строка!
     return encrypted_bytes.hex()
 
 def xor_decrypt(hex_data: str, key: str) -> str:
@@ -35,7 +34,6 @@ def xor_decrypt(hex_data: str, key: str) -> str:
         raise ValueError("Ключ не может быть пустым")
     
     try:
-        # Превращаем hex → байты
         encrypted_bytes = bytes.fromhex(hex_data)
     except ValueError as e:
         raise ValueError("Некорректный формат: ожидается hex-строка (0-9, a-f)")
@@ -47,7 +45,6 @@ def xor_decrypt(hex_data: str, key: str) -> str:
         k = key_bytes[i % len(key_bytes)]
         decrypted_bytes.append(encrypted_bytes[i] ^ k)
     
-    # Декодируем как UTF-8 — теперь это точно исходный текст!
     return decrypted_bytes.decode('utf-8')
 
 # GUI-обработчики
@@ -90,8 +87,6 @@ def decrypt():
         messagebox.showerror("Ошибка", "Расшифровка прошла, но текст повреждён.\nВозможно, неверный ключ.")
     except Exception as e:
         messagebox.showerror("Ошибка", f"Расшифровка не удалась:\n{e}")
-
-# --- GUI (ваш существующий, без изменений, кроме уточнения метки) ---
 
 root = tk.Tk()
 root.title("XOR Шифрование (hex-режим)")
