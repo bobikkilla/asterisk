@@ -53,6 +53,9 @@ def encrypt():
     text = input_text.get("1.0", tk.END).strip()
     key = key_entry.get().strip()
     
+    if not (1 <= len(key) <= 100):
+        messagebox.showerror("Ошибка", "Ключ должен быть длинной от 1 до 100 байт!")
+        return
     if not key:
         messagebox.showerror("Ошибка", "Введите ключ шифрования!")
         return
@@ -71,6 +74,10 @@ def decrypt():
     hex_text = output_text.get("1.0", tk.END).strip()
     key = key_entry.get().strip()
     
+    if not (1 <= len(key) <= 100):
+        messagebox.showerror("Ошибка", "Ключ должен быть длинной от 1 до 100 байт!")
+        return
+        
     if not key:
         messagebox.showerror("Ошибка", "Введите ключ расшифровки!")
         return

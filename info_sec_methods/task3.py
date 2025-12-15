@@ -95,7 +95,7 @@ S_BOXES = [
     [[15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10],
      [3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5],
      [0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15],
-     [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9]],
+     [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0,35, 14, 9]],
     # S3
     [[10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8],
      [13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1],
@@ -130,7 +130,7 @@ S_BOXES = [
 
 SHIFT_SCHEDULE = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]
 
-# ---------- Битовые операции ----------
+# support functions
 def bytes_to_bits(data):
     bits = []
     for byte in data:
@@ -150,7 +150,6 @@ def bits_to_bytes(bits):
     return bytes(result)
 
 def permute(bits, table):
-    """Применяет перестановку по таблице (нумерация с 1 в стандарте)"""
     return [bits[i - 1] for i in table]
 
 def xor_bits(a, b):
@@ -160,18 +159,12 @@ def left_shift(bits, n):
     n = n % len(bits)
     return bits[n:] + bits[:n]
 
-# ---------- S-блоки ----------
 def s_box_substitute(bits):
     output = []
     for i in range(8):
         block = bits[6*i : 6*i+6]
         row = (block[0] << 1) | block[5]
         col = (block[1] << 3) | (block[2] << 2) | (block[3] << 1) | block[4]
-        
-        # Строгая проверка границ
-        if row < 0 or row > 3 or col < 0 or col > 15:
-            raise ValueError(f"S-блок {i}: некорректные row={row} или col={col}")
-        
         val = S_BOXES[i][row][col]
         output.extend([
             (val >> 3) & 1,
@@ -181,272 +174,201 @@ def s_box_substitute(bits):
         ])
     return output
 
-# ---------- Генерация ключей ----------
 def generate_round_keys(key_64bits):
-    # PC-1: 64 → 56 бит
     key_56 = permute(key_64bits, PC1)
     C = key_56[:28]
     D = key_56[28:]
     round_keys = []
-    
     for i in range(16):
         C = left_shift(C, SHIFT_SCHEDULE[i])
         D = left_shift(D, SHIFT_SCHEDULE[i])
         CD = C + D
-        round_key = permute(CD, PC2)  # 56 → 48 бит
+        round_key = permute(CD, PC2)
         round_keys.append(round_key)
-    
     return round_keys
 
-# ---------- Функция F ----------
 def f_function(R, round_key):
-    expanded = permute(R, E)  # 32 → 48 бит
+    expanded = permute(R, E)
     xored = xor_bits(expanded, round_key)
-    substituted = s_box_substitute(xored)  # 48 → 32 бита
+    substituted = s_box_substitute(xored)
     return permute(substituted, P)
 
-# ---------- Основной цикл ----------
 def des_block(data_64bits, round_keys, encrypt=True):
-    # Начальная перестановка
     permuted = permute(data_64bits, IP)
     L = permuted[:32]
     R = permuted[32:]
-    
-    # 16 раундов
     for i in range(16):
         current_key = round_keys[i] if encrypt else round_keys[15-i]
         new_L = R
         new_R = xor_bits(L, f_function(R, current_key))
         L, R = new_L, new_R
-    
-    # Финальная перестановка (обратный порядок)
     final = R + L
     return permute(final, IP_INV)
 
-# ---------- Работа с данными ----------
-def pkcs7_pad(data):
+def prepare_key_8_bytes(key: str) -> bytes:
+    kb = key.encode('utf-8')
+    if len(kb) > 8:
+        return kb[:8]
+    else:
+        return kb.ljust(8, b'\x00')
+
+# ---------- PKCS#7 Padding ----------
+def pkcs7_pad(data: bytes) -> bytes:
     pad_len = 8 - (len(data) % 8)
     return data + bytes([pad_len] * pad_len)
 
-def pkcs7_unpad(data):
+def pkcs7_unpad(data: bytes) -> bytes:
+    if not data:
+        return data
     pad_len = data[-1]
     if pad_len < 1 or pad_len > 8:
-        raise ValueError("Некорректный padding")
+        raise ValueError("некорректный padding")
     if data[-pad_len:] != bytes([pad_len] * pad_len):
-        raise ValueError("Некорректный padding")
+        raise ValueError("некорректный padding")
     return data[:-pad_len]
 
-def des_crypt(data, key, mode='ECB', iv=None, encrypt=True):
-    # Валидация
-    if len(key) != 8:
-        raise ValueError("Ключ должен быть длиной 8 байт")
-    if mode == 'CBC' and (iv is None or len(iv) != 8):
-        raise ValueError("Для CBC требуется IV длиной 8 байт")
+# ---------- Основная функция шифрования/расшифровки ----------
+def des_encrypt(plain_text: str, key_str: str) -> str:
+    key = prepare_key_8_bytes(key_str)
+    data = plain_text.encode('utf-8')
+    padded = pkcs7_pad(data)
     
-    # Подготовка
     key_bits = bytes_to_bits(key)
     round_keys = generate_round_keys(key_bits)
     
-    if encrypt:
-        padded = pkcs7_pad(data)
-    else:
-        if len(data) % 8 != 0:
-            raise ValueError("Данные должны быть кратны 8 байтам")
-        padded = data
-    
-    result = bytearray()
-    prev_block = iv
-    
-    # Обработка блоков
+    cipher = bytearray()
     for i in range(0, len(padded), 8):
         block = padded[i:i+8]
         block_bits = bytes_to_bits(block)
-        
-        if mode == 'CBC':
-            if encrypt:
-                if prev_block is None:
-                    block_bits = xor_bits(block_bits, bytes_to_bits(iv))
-                else:
-                    block_bits = xor_bits(block_bits, bytes_to_bits(prev_block))
-            else:
-                # Для расшифровки CBC обрабатываем последовательно
-                pass
-        
-        # Шифрование/расшифровка блока
-        processed_bits = des_block(block_bits, round_keys, encrypt=encrypt)
-        processed = bits_to_bytes(processed_bits)
-        
-        if mode == 'CBC' and not encrypt:
-            if prev_block is None:
-                processed = xor_bits(processed_bits, bytes_to_bits(iv))
-            else:
-                processed = xor_bits(processed_bits, bytes_to_bits(prev_block))
-            processed = bits_to_bytes(processed)
-        
-        result.extend(processed)
-        
-        if mode == 'CBC':
-            prev_block = block if not encrypt else processed
+        encrypted_bits = des_block(block_bits, round_keys, encrypt=True)
+        cipher.extend(bits_to_bytes(encrypted_bits))
     
-    # Удаление паддинга при расшифровке
-    if not encrypt:
-        try:
-            return pkcs7_unpad(bytes(result))
-        except:
-            return bytes(result)  # возвращаем как есть при ошибке
+    return cipher.hex()
+
+def des_decrypt(cipher_hex: str, key_str: str) -> str:
+    key = prepare_key_8_bytes(key_str)
     
-    return bytes(result)
+    try:
+        cipher = bytes.fromhex(cipher_hex)
+    except ValueError:
+        raise ValueError("Данные должны быть в корректном hex-формате")
+    
+    if len(cipher) % 8 != 0:
+        raise ValueError("Размер зашифрованных данных должен быть кратен 8 байтам")
+    
+    key_bits = bytes_to_bits(key)
+    round_keys = generate_round_keys(key_bits)
+    
+    plain_padded = bytearray()
+    for i in range(0, len(cipher), 8):
+        block = cipher[i:i+8]
+        block_bits = bytes_to_bits(block)
+        decrypted_bits = des_block(block_bits, round_keys, encrypt=False)
+        plain_padded.extend(bits_to_bytes(decrypted_bits))
+    
+    try:
+        plain = pkcs7_unpad(plain_padded)
+        return plain.decode('utf-8')
+    except Exception:
+        # В случае ошибки паддинга — возвращаем raw-декод с заменой
+        return plain_padded.decode('utf-8', errors='replace')
 
 # ===========================
-# 2. GUI с tkinter
+# 2. GUI
 # ===========================
 
 class DESApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("DES Шифрование (NIST-валидированная реализация)")
-        self.root.geometry("780x620")
+        self.root.title("DES Шифрование (8-байтный ключ)")
+        self.root.geometry("700x520")
         self.root.configure(bg="#f0f0f0")
         self.setup_ui()
-        
-        # Автозаполнение для тестирования
-        self.key_encrypt.insert(0, "13345779")
-        self.key_decrypt.insert(0, "13345779")
-        self.plain_text.insert("1.0", "HelloDES")
-        self.iv_entry.insert(0, "0000000000000000")
 
     def setup_ui(self):
-        # Заголовок
         tk.Label(
-            self.root, text="🔐 DES (FIPS 46-3)", 
+            self.root, text="DES (FIPS 46-3)", 
             font=("Arial", 16, "bold"), bg="#f0f0f0", fg="#2c3e50"
-        ).pack(pady=(15, 5))
+        ).pack(pady=(15, 10))
         
-        # Режим работы
-        mode_frame = tk.LabelFrame(self.root, text="Режим работы", bg="#f0f0f0", font=("Arial", 10, "bold"))
-        mode_frame.pack(fill=tk.X, padx=20, pady=(0, 10))
-        
-        self.mode = tk.StringVar(value="ECB")
-        tk.Radiobutton(mode_frame, text="ECB", variable=self.mode, value="ECB", 
-                      bg="#f0f0f0", font=("Arial", 9)).pack(side=tk.LEFT, padx=10)
-        tk.Radiobutton(mode_frame, text="CBC", variable=self.mode, value="CBC", 
-                      bg="#f0f0f0", font=("Arial", 9)).pack(side=tk.LEFT, padx=10)
-        
-        tk.Label(mode_frame, text="IV (hex):", bg="#f0f0f0", font=("Arial", 9)).pack(side=tk.LEFT, padx=(20, 5))
-        self.iv_entry = tk.Entry(mode_frame, width=18, font=("Consolas", 9))
-        self.iv_entry.pack(side=tk.LEFT, padx=5)
-        
-        # Поля ввода
-        input_frame = tk.LabelFrame(self.root, text="Данные", bg="#f0f0f0", font=("Arial", 10, "bold"))
-        input_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
-        
+        # Ключ (одно поле)
+        tk.Label(self.root, text="Ключ:", 
+                 font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
+        self.key_entry = tk.Entry(self.root, width=80, font=("Consolas", 10))
+        self.key_entry.pack(padx=20, pady=(0, 10), fill=tk.X)
+        self.key_entry.insert(0, "MyKey123")  # пример
+
         # Исходный текст
-        tk.Label(input_frame, text="Исходный текст:", bg="#f0f0f0", font=("Arial", 9, "bold")).grid(row=0, column=0, sticky="w", padx=5)
-        self.plain_text = tk.Text(input_frame, height=6, width=85, font=("Consolas", 9))
-        self.plain_text.grid(row=1, column=0, columnspan=2, padx=5, pady=(0, 10), sticky="we")
-        
-        # Ключи
-        tk.Label(input_frame, text="Ключ (8 байт):", bg="#f0f0f0", font=("Arial", 9, "bold")).grid(row=2, column=0, sticky="w", padx=5)
-        self.key_encrypt = tk.Entry(input_frame, width=42, font=("Consolas", 9))
-        self.key_encrypt.grid(row=3, column=0, padx=5, pady=(0, 5), sticky="w")
-        
-        tk.Label(input_frame, text="Ключ расшифровки (8 байт):", bg="#f0f0f0", font=("Arial", 9, "bold")).grid(row=2, column=1, sticky="w", padx=5)
-        self.key_decrypt = tk.Entry(input_frame, width=42, font=("Consolas", 9))
-        self.key_decrypt.grid(row=3, column=1, padx=5, pady=(0, 5), sticky="w")
-        
+        tk.Label(self.root, text="Исходный текст:", font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
+        self.plain_text = tk.Text(self.root, height=6, width=80, font=("Consolas", 10))
+        self.plain_text.pack(padx=20, pady=(0, 10), fill=tk.BOTH, expand=True)
+        self.plain_text.insert("1.0", "secret message!")
+
         # Результат
-        tk.Label(input_frame, text="Результат (hex):", bg="#f0f0f0", font=("Arial", 9, "bold")).grid(row=4, column=0, sticky="w", padx=5)
-        self.result_text = tk.Text(input_frame, height=6, width=85, font=("Consolas", 9))
-        self.result_text.grid(row=5, column=0, columnspan=2, padx=5, pady=(0, 10), sticky="we")
-        
-        input_frame.columnconfigure(0, weight=1)
-        input_frame.columnconfigure(1, weight=1)
-        
+        tk.Label(self.root, text="Результат (hex):", font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
+        self.result_text = tk.Text(self.root, height=6, width=80, font=("Consolas", 10))
+        self.result_text.pack(padx=20, pady=(0, 15), fill=tk.BOTH, expand=True)
+
         # Кнопки
         btn_frame = tk.Frame(self.root, bg="#f0f0f0")
-        btn_frame.pack(pady=10)
+        btn_frame.pack(pady=5)
         
-        tk.Button(btn_frame, text="Шифровать", command=self.encrypt,
-                 bg="#27ae60", fg="white", font=("Arial", 10, "bold"), width=14).pack(side=tk.LEFT, padx=10)
+        tk.Button(
+            btn_frame, text="Шифровать", command=self.encrypt,
+            font=("Arial", 10, "bold"), bg="#27ae60", fg="white", width=12
+        ).pack(side=tk.LEFT, padx=15)
         
-        tk.Button(btn_frame, text="Расшифровать", command=self.decrypt,
-                 bg="#2980b9", fg="white", font=("Arial", 10, "bold"), width=14).pack(side=tk.LEFT, padx=10)
-        
-        # Статус
-        self.status = tk.Label(self.root, text="Статус: Готов к работе", 
-                             font=("Arial", 9), bg="#f0f0f0", fg="#27ae60")
-        self.status.pack(pady=5)
-        
-        # Подсказки
-        tk.Label(
-            self.root,
-            text="ℹ️ Ключ — ровно 8 символов. Для CBC: IV — 16 hex-символов (8 байт).\n"
-                 "Результат отображается в шестнадцатеричном формате.",
-            font=("Arial", 8), fg="#7f8c8d", bg="#f0f0f0", justify="left"
-        ).pack(pady=(5, 10))
+        tk.Button(
+            btn_frame, text="Расшифровать", command=self.decrypt,
+            font=("Arial", 10, "bold"), bg="#2980b9", fg="white", width=12
+        ).pack(side=tk.LEFT, padx=15)
 
-    def get_iv(self):
-        if self.mode.get() == "CBC":
-            iv_hex = self.iv_entry.get().strip()
-            if len(iv_hex) != 16:
-                raise ValueError("IV должен быть 16 hex-символов (8 байт)")
-            try:
-                return bytes.fromhex(iv_hex)
-            except:
-                raise ValueError("IV должен содержать только 0-9, a-f")
-        return None
+        # Статус
+        self.status = tk.Label(
+            self.root, text="Статус: введите ключ и текст", 
+            font=("Arial", 9), bg="#f0f0f0", fg="#7f8c8d"
+        )
+        self.status.pack(pady=(5, 10))
 
     def encrypt(self):
         try:
-            self.status.config(text="Статус: Шифрование...", fg="#2980b9")
+            key = self.key_entry.get()
+            plain = self.plain_text.get("1.0", tk.END).strip()
+            if not key:
+                raise ValueError("Ключ не может быть пустым")
+            if not plain:
+                raise ValueError("Текст не может быть пустым")
+            
+            self.status.config(text="Шифрую...", fg="#2980b9")
             self.root.update()
             
-            plain = self.plain_text.get("1.0", tk.END).strip().encode('utf-8')
-            key = self.key_encrypt.get().encode('latin1')
-            if len(key) != 8:
-                raise ValueError("Ключ шифрования должен быть ровно 8 байт")
-            
-            iv = self.get_iv()
-            cipher = des_crypt(plain, key, mode=self.mode.get(), iv=iv, encrypt=True)
-            
+            cipher_hex = des_encrypt(plain, key)
             self.result_text.delete("1.0", tk.END)
-            self.result_text.insert(tk.END, cipher.hex())
-            self.status.config(text="Статус: Успешно зашифровано", fg="#27ae60")
+            self.result_text.insert(tk.END, cipher_hex)
+            self.status.config(text="Успешно зашифровано", fg="#27ae60")
         except Exception as e:
-            self.status.config(text=f"Статус: Ошибка", fg="#e74c3c")
+            self.status.config(text="Ошибка", fg="#e74c3c")
             messagebox.showerror("Ошибка шифрования", str(e))
 
     def decrypt(self):
         try:
-            self.status.config(text="Статус: Расшифровка...", fg="#2980b9")
-            self.root.update()
-            
+            key = self.key_entry.get()
             cipher_hex = self.result_text.get("1.0", tk.END).strip()
+            if not key:
+                raise ValueError("Ключ не может быть пустым")
             if not cipher_hex:
                 raise ValueError("Нет данных для расшифровки")
             
-            try:
-                cipher = bytes.fromhex(cipher_hex)
-            except:
-                raise ValueError("Результат должен быть в hex-формате")
+            self.status.config(text="Расшифровываю...", fg="#2980b9")
+            self.root.update()
             
-            key = self.key_decrypt.get().encode('latin1')
-            if len(key) != 8:
-                raise ValueError("Ключ расшифровки должен быть ровно 8 байт")
-            
-            iv = self.get_iv()
-            plain = des_crypt(cipher, key, mode=self.mode.get(), iv=iv, encrypt=False)
-            
+            plain = des_decrypt(cipher_hex, key)
             self.plain_text.delete("1.0", tk.END)
-            self.plain_text.insert(tk.END, plain.decode('utf-8', errors='replace'))
-            self.status.config(text="Статус: Успешно расшифровано", fg="#27ae60")
+            self.plain_text.insert(tk.END, plain)
+            self.status.config(text="Успешно расшифровано", fg="#27ae60")
         except Exception as e:
-            self.status.config(text=f"Статус: Ошибка", fg="#e74c3c")
+            self.status.config(text="Ошибка", fg="#e74c3c")
             messagebox.showerror("Ошибка расшифровки", str(e))
-
-# ===========================
-# 3. Запуск приложения
-# ===========================
 
 if __name__ == "__main__":
     root = tk.Tk()
