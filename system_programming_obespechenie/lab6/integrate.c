@@ -8,7 +8,7 @@
 
 typedef long double ldouble;
 
-// Интегрируемая функция
+// function
 ldouble f(ldouble x) {
     if (x >= 0.0L && x <= 1.0L) {
         return cosl(x) * expl(-x * x);
@@ -18,14 +18,14 @@ ldouble f(ldouble x) {
     return 0.0L;
 }
 
-// Вспомогательная функция: время в секундах
+// Get current time in seconds
 double get_time_sec() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
-// Последовательный метод средних прямоугольников
+// mid point rule - sequential
 ldouble midpoint_sequential(ldouble a, ldouble b, long long n) {
     ldouble h = (b - a) / (ldouble)n;
     ldouble sum = 0.0L;
@@ -36,7 +36,7 @@ ldouble midpoint_sequential(ldouble a, ldouble b, long long n) {
     return sum * h;
 }
 
-// ===== pthreads =====
+// phtreads version
 typedef struct {
     ldouble h;
     ldouble a;
@@ -55,7 +55,7 @@ static void* midpoint_pthread_worker(void* arg) {
     return NULL;
 }
 
-// Безопасная версия через общий h
+// main func pthreads
 ldouble midpoint_pthreads(ldouble a, ldouble b, long long n, int nthreads) {
     ldouble h = (b - a) / (ldouble)n;
     WorkerArgs* args = malloc(nthreads * sizeof(WorkerArgs));
@@ -85,7 +85,7 @@ ldouble midpoint_pthreads(ldouble a, ldouble b, long long n, int nthreads) {
     return total * h;
 }
 
-// OpenMP версия
+// openmp version
 ldouble midpoint_openmp(ldouble a, ldouble b, long long n) {
     ldouble h = (b - a) / (ldouble)n;
     ldouble sum = 0.0L;
@@ -97,7 +97,7 @@ ldouble midpoint_openmp(ldouble a, ldouble b, long long n) {
     return sum * h;
 }
 
-// Универсальная процедура: уточнение до eps методом Рунге
+// adaptive integration using Runge's rule
 typedef ldouble (*Integrator)(ldouble, ldouble, long long, ...);
 
 ldouble integrate_adaptive(
@@ -108,7 +108,7 @@ ldouble integrate_adaptive(
     long long* out_n_final
 ) {
     ldouble I_h = 0.0L, I_h2 = 0.0L;
-    long long n = 2;  // начальное разбиение
+    long long n = 2;
 
     do {
         if (nthreads == 0) {
@@ -125,13 +125,12 @@ ldouble integrate_adaptive(
         }
 
         ldouble runge_err = fabsl(I_h2 - I_h) / 3.0L;
-        // printf("n=%lld, I_h=%.20Lf, I_h2=%.20Lf, err=%.3Le\n", n, I_h, I_h2, (double)runge_err);
         if (runge_err <= eps) {
             if (out_n_final) *out_n_final = 2 * n;
             return I_h2;
         }
         n *= 2;
-        // защита от бесконечного цикла (на практике не сработает при eps=1e-16)
+        // if eps=1e-16, won't work
         if (n > (1LL << 30)) {
             fprintf(stderr, "Warning: too many steps (n=%lld), breaking\n", n);
             break;
@@ -142,7 +141,7 @@ ldouble integrate_adaptive(
     return I_h2;
 }
 
-// Обёртка для удобства вызова
+// Wrappers
 ldouble integrate_sequential(ldouble a, ldouble b, ldouble eps, long long* n_out) {
     return integrate_adaptive(NULL, a, b, eps, 0, n_out);
 }
@@ -153,19 +152,14 @@ ldouble integrate_openmp(ldouble a, ldouble b, ldouble eps, long long* n_out) {
     return integrate_adaptive(NULL, a, b, eps, -1, n_out);
 }
 
-// Но проще — просто скопируем логику трижды без шаблонов для ясности.
-// Ниже — явная реализация (без указателей на функции), чтобы не было ошибок в pthreads.
-
-// ----------------------------------------
 int main() {
     const ldouble a = 0.0L, b = 2.0L;
-    const ldouble eps = 1e-16L;  // чтобы гарантировать ~1e-15 итоговой погрешности
+    const ldouble eps = 1e-16L; // desired accuracy
 
     long long n_seq, n_thr, n_omp;
     ldouble I_seq, I_thr, I_omp;
     double t1, t2, t_seq, t_thr, t_omp;
 
-    // === Последовательный ===
     printf("=== Sequential ===\n");
     t1 = get_time_sec();
     {
@@ -186,7 +180,6 @@ int main() {
     t2 = get_time_sec();
     t_seq = t2 - t1;
 
-    // === pthreads (4 потока) ===
     int nthreads = 8;
     printf("=== pthreads (%d threads) ===\n", nthreads);
     t1 = get_time_sec();
@@ -208,7 +201,6 @@ int main() {
     t2 = get_time_sec();
     t_thr = t2 - t1;
 
-    // === OpenMP ===
     printf("=== OpenMP ===\n");
     t1 = get_time_sec();
     {
