@@ -1,7 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_IE 0x0501
 #include <windows.h>
-#include <commctrl.h>   // Обязательно после windows.h
+#include <commctrl.h>
 #include <commdlg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,9 +25,15 @@ void CreateContextMenu(HWND hwnd, int x, int y);
 BOOL OpenTextFile(HWND hEdit);
 BOOL SaveTextFile(HWND hEdit);
 void ShowAbout(HWND hwnd);
+LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
+    
+    // ctrl key support
+    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_STANDARD_CLASSES };
+    InitCommonControlsEx(&icc);
+    
     hInst = hInstance;
     WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
@@ -65,7 +71,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE:
-            hEdit = CreateWindowEx(
+                hEdit = CreateWindowEx(
                 WS_EX_CLIENTEDGE,
                 "EDIT", "",
                 WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL |
@@ -73,6 +79,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 0, 0, 0, 0,
                 hwnd, (HMENU)ID_EDIT, hInst, NULL
             );
+            // catching Ctrl+O / Ctrl+S
+            SetWindowSubclass(hEdit, EditSubclassProc, 0, (DWORD_PTR)hwnd);
             CreateMainMenu(hwnd);
             break;
 
@@ -85,10 +93,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case ID_FILE_OPEN:
-                    OpenTextFile(hEdit);  // ← ИЗМЕНЕНО
+                    OpenTextFile(hEdit);
                     break;
                 case ID_FILE_SAVE:
-                    SaveTextFile(hEdit);  // ← ИЗМЕНЕНО
+                    SaveTextFile(hEdit);
                     break;
                 case ID_FILE_EXIT:
                     PostMessage(hwnd, WM_CLOSE, 0, 0);
@@ -131,11 +139,33 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
-
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
+}
+
+LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
+                                  UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    HWND hwndParent = (HWND)dwRefData;
+
+    switch (uMsg) {
+        case WM_KEYDOWN:
+            if (GetKeyState(VK_CONTROL) & 0x8000) {  // Ctrl pressed
+                switch (wParam) {
+                    case 'O':
+                    case 'o':
+                        OpenTextFile(hWnd);
+                        return 0;  // consumed
+                    case 'S':
+                    case 's':
+                        SaveTextFile(hWnd);
+                        return 0;  // consumed
+                }
+            }
+            break;
+    }
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
 void CreateMainMenu(HWND hwnd) {
