@@ -11,7 +11,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-# Вспомогательные функции
+# support functions for MD5 implementation
 def left_rotate(x, c):
     """Циклический сдвиг 32-битного слова влево на c бит"""
     return ((x << c) | (x >> (32 - c))) & 0xFFFFFFFF
@@ -28,7 +28,7 @@ def H(X, Y, Z):
 def I(X, Y, Z):
     return Y ^ (X | (~Z))
 
-# Константы: T[i] = floor(2^32 * abs(sin(i+1)))
+# T[i] = floor(2^32 * abs(sin(i+1)))
 T = [
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
     0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -48,12 +48,12 @@ T = [
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 ]
 
-# Таблица сдвигов для каждого шага (по 16 на раунд)
+# shift table
 S = [
-    7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  # Раунд 1
-    5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  # Раунд 2
-    4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  # Раунд 3
-    6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  # Раунд 4
+    7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  # round 1
+    5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  # round 2
+    4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  # round 3
+    6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  # round 4
 ]
 
 def md5_padding(message: bytes) -> bytes:
@@ -66,100 +66,64 @@ def md5_padding(message: bytes) -> bytes:
     message += b'\x80'  # 1000 0000
     while (len(message) * 8) % 512 != 448:
         message += b'\x00'
-    # Добавляем длину (8 байт, little-endian)
+    # adding length (8 byte, little-endian)
     message += orig_len_in_bits.to_bytes(8, 'little')
     return message
 
 def md5_hash(message: str) -> str:
-    """Основная функция: строка → MD5-хеш (hex)"""
     data = message.encode('utf-8')
     padded = md5_padding(data)
     
-    # Начальные значения (A, B, C, D)
+    # Начальные значения
     A, B, C, D = 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476
-    
-    # Обработка блоков по 512 бит (64 байта)
+
+    # g index sequences from RFC 1321, section 3.4 
+    # round 1: i = 0..15 → g = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+    # round 2: i = 16..31 → g = [1,6,11,0,5,10,15,4,9,14,3,8,13,2,7,12]
+    # round 3: i = 32..47 → g = [5,8,11,14,1,4,7,10,13,0,3,6,9,12,15,2]
+    # round 4: i = 48..63 → g = [0,7,14,5,12,3,10,1,8,15,6,13,4,11,2,9]
+    g_indices = (
+        list(range(16)) +  # round 1
+        [1,6,11,0,5,10,15,4,9,14,3,8,13,2,7,12] +  # round 2
+        [5,8,11,14,1,4,7,10,13,0,3,6,9,12,15,2] +  # round 3
+        [0,7,14,5,12,3,10,1,8,15,6,13,4,11,2,9]     # round 4
+    )
+
+    # md5 functions right order
+    functions = [F] * 16 + [G] * 16 + [H] * 16 + [I] * 16
+
     for i in range(0, len(padded), 64):
         block = padded[i:i+64]
         X = [int.from_bytes(block[j:j+4], 'little') for j in range(0, 64, 4)]
-        
-        # Сохраняем начальные значения
-        AA, BB, CC, DD = A, B, C, D
-        
-        # --- 64 шага (4 раунда по 16 шагов) ---
-        # Раунд 1
-        for j in range(16):
-            k = j
-            if j < 4:
-                f = F(B, C, D)
-                g = j
-            elif j < 8:
-                f = F(D, B, C)
-                g = (5*j + 1) % 16
-            elif j < 12:
-                f = F(C, D, B)
-                g = (3*j + 5) % 16
-            else:
-                f = F(B, C, D)
-                g = (7*j) % 16
-            # Но проще использовать стандартную схему:
-        # Вместо этого — используем классическую реализацию:
-        # (перепишем цикл корректно)
-        pass  # ← заменим ниже
 
-    # Исправленная и проверенная реализация:
-    A, B, C, D = 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476
-    for i in range(0, len(padded), 64):
-        block = padded[i:i+64]
-        X = [int.from_bytes(block[j:j+4], 'little') for j in range(0, 64, 4)]
-        
-        AA, BB, CC, DD = A, B, C, D
-        
-        # --- Раунд 1 (шаги 0–15) ---
-        for j in range(16):
-            f = F(B, C, D)
-            g = j
-            temp = (A + f + X[g] + T[j]) & 0xFFFFFFFF
-            A = (D + left_rotate(temp, S[j])) & 0xFFFFFFFF
-            A, B, C, D = D, A, B, C
-        
-        # --- Раунд 2 (шаги 16–31) ---
-        for j in range(16, 32):
-            f = G(B, C, D)
-            g = (5*j + 1) % 16
-            temp = (A + f + X[g] + T[j]) & 0xFFFFFFFF
-            A = (D + left_rotate(temp, S[j])) & 0xFFFFFFFF
-            A, B, C, D = D, A, B, C
-        
-        # --- Раунд 3 (шаги 32–47) ---
-        for j in range(32, 48):
-            f = H(B, C, D)
-            g = (3*j + 5) % 16
-            temp = (A + f + X[g] + T[j]) & 0xFFFFFFFF
-            A = (D + left_rotate(temp, S[j])) & 0xFFFFFFFF
-            A, B, C, D = D, A, B, C
-        
-        # --- Раунд 4 (шаги 48–63) ---
-        for j in range(48, 64):
-            f = I(B, C, D)
-            g = (7*j) % 16
-            temp = (A + f + X[g] + T[j]) & 0xFFFFFFFF
-            A = (D + left_rotate(temp, S[j])) & 0xFFFFFFFF
-            A, B, C, D = D, A, B, C
-        
-        A = (AA + A) & 0xFFFFFFFF
-        B = (BB + B) & 0xFFFFFFFF
-        C = (CC + C) & 0xFFFFFFFF
-        D = (DD + D) & 0xFFFFFFFF
+        a, b, c, d = A, B, C, D
 
-    # Собираем результат (little-endian для каждого слова)
-    digest = (
+        for idx in range(64):
+            f = functions[idx](b, c, d)
+            g = g_indices[idx]
+            shift = S[idx]
+            add_const = T[idx]
+
+            # new value for a
+            temp = (a + f + X[g] + add_const) & 0xFFFFFFFF
+            temp = left_rotate(temp, shift)
+            a = (b + temp) & 0xFFFFFFFF
+
+            # cycle shift: a←d, b←a, c←b, d←c
+            a, b, c, d = d, a, b, c
+
+        A = (A + a) & 0xFFFFFFFF
+        B = (B + b) & 0xFFFFFFFF
+        C = (C + c) & 0xFFFFFFFF
+        D = (D + d) & 0xFFFFFFFF
+
+    # result (little-endian for each part)
+    return (
         A.to_bytes(4, 'little') +
         B.to_bytes(4, 'little') +
         C.to_bytes(4, 'little') +
         D.to_bytes(4, 'little')
-    )
-    return digest.hex()
+    ).hex()
 
 class MD5App:
     def __init__(self, root):
@@ -170,20 +134,20 @@ class MD5App:
         self.setup_ui()
 
     def setup_ui(self):
-        # Заголовок
+        # title
         tk.Label(
             self.root, text="MD5 (RFC 1321)", 
             font=("Arial", 16, "bold"), bg="#f0f0f0", fg="#2c3e50"
         ).pack(pady=(15, 10))
 
-        # Исходное сообщение
+        # message for hash
         tk.Label(self.root, text="Сообщение для хеширования:", 
                  font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
         self.input_text = tk.Text(self.root, height=6, width=80, font=("Consolas", 10))
         self.input_text.pack(padx=20, pady=(0, 10), fill=tk.BOTH, expand=True)
-        self.input_text.insert("1.0", "Привет, мир!")
+        self.input_text.insert("1.0", "Wow!")
 
-        # Хеш
+        # hash
         tk.Label(self.root, text="MD5-хеш (hex):", 
                  font=("Arial", 10, "bold"), bg="#f0f0f0").pack(anchor="w", padx=20)
         self.hash_text = tk.Text(self.root, height=2, width=80, font=("Consolas", 10))
@@ -191,7 +155,7 @@ class MD5App:
         self.hash_text.insert("1.0", "[нажмите «Вычислить хеш»]")
         self.hash_text.config(state=tk.DISABLED)
 
-        # Кнопка
+        # button
         btn_frame = tk.Frame(self.root, bg="#f0f0f0")
         btn_frame.pack(pady=5)
         
@@ -200,7 +164,7 @@ class MD5App:
             font=("Arial", 10, "bold"), bg="#27ae60", fg="white", width=16
         ).pack()
 
-        # Статус и подсказка
+        # status
         self.status = tk.Label(
             self.root, text="Статус: введите сообщение", 
             font=("Arial", 9), bg="#f0f0f0", fg="#7f8c8d"
@@ -229,7 +193,6 @@ class MD5App:
             self.status.config(text="Ошибка", fg="#e74c3c")
             messagebox.showerror("Ошибка", str(ex))
 
-# ========== ЗАПУСК ==========
 if __name__ == "__main__":
     root = tk.Tk()
     app = MD5App(root)
