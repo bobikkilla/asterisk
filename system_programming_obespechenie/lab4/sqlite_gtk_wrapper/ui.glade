@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.20"/>
+  <object class="GtkWindow" id="main_window">
+    <property name="title">SQLite Wrapper (GTK3)</property>
+    <property name="default-width">800</property>
+    <property name="default-height">500</property>
+    <signal name="destroy" handler="on_window_destroy" swapped="no"/>
+    <child>
+      <object class="GtkBox" id="main_box">
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <property name="margin">10</property>
+        <child>
+          <object class="GtkEntry" id="query_entry">
+            <property name="placeholder-text">SELECT * FROM Животное;</property>
+            <property name="text">SELECT * FROM Животное;</property>
+          </object>
+        </child>
+        <!-- выбор таблицы и управление (новое) -->
+        <child>
+          <object class="GtkBox" id="table_picker_box">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkComboBoxText" id="table_combo_main"/>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_refresh_tables">
+                <property name="label">Обновить таблицы</property>
+                <signal name="clicked" handler="on_refresh_tables_clicked" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_browse_table">
+                <property name="label">Открыть</property>
+                <signal name="clicked" handler="on_browse_clicked" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="btn_execute">
+            <property name="label">Выполнить запрос</property>
+            <signal name="clicked" handler="on_execute_clicked" swapped="no"/>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="vexpand">True</property>
+            <child>
+              <object class="GtkTreeView" id="tree_view">
+                <property name="headers-clickable">True</property>
+                <property name="enable-search">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButtonBox">
+            <property name="layout-style">start</property>
+            <child>
+              <object class="GtkButton" id="btn_add">
+                <property name="label">➕ Добавить</property>
+                <signal name="clicked" handler="on_add_clicked" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_edit">
+                <property name="label">✏️ Редактировать</property>
+                <signal name="clicked" handler="on_edit_clicked" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_delete">
+                <property name="label">❌ Удалить</property>
+                <signal name="clicked" handler="on_delete_clicked" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="status_label">
+            <property name="halign">start</property>
+            <property name="label">Готов</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
