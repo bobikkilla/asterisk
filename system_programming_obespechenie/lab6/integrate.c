@@ -6,6 +6,13 @@
 #include <pthread.h>
 #include <omp.h>
 
+/*
+pthreads (10): I = 0.33734716900718737578, n = 4294967296, time = 311.442846 s
+OpenMP(10)   : I = 0.33734716900718813486, n = 68719476736, time = 18777.807237 s (by mistake counted 1e-16 accuracy)
+Sequential   : I = 0.33734716900718683907, n = 4294967296, time = 1211.841430 s
+results from the server
+*/
+
 typedef long double ldouble;
 
 // function
