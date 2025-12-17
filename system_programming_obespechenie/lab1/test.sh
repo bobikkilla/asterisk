@@ -113,7 +113,7 @@ echo
 echo "summary: $passed / $total tests passed"
 
 cd ..
-m -rf "$test_dir"
+rm -rf "$test_dir"
 
 if [[ $passed -eq $total ]]; then
     echo "all tests passed."
