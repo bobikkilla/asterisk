@@ -29,6 +29,7 @@ J21 = cos(x1_0 + 1);
 J22 = 0;
 J_matrix = [J11, J12; J21, J22];
 q = norm(J_matrix, 1);
+epsilon0 = (1 - q) / q * eps;
 fprintf('q = %.6f\n', q);
 
 x1_prev = x1_0;
@@ -42,7 +43,7 @@ for k = 1:max_iter
     dx_vec = [x1_new - x1_prev; x2_new - x2_prev];
     norm1 = norm(dx_vec, 1);
     fprintf('%-4d %-12.6f %-12.6f %-14.6e\n', k, x1_new, x2_new, norm1);
-    if norm1 < eps
+    if norm1 < epsilon0
         x1_simple = x1_new;
         x2_simple = x2_new;
         iter_simple = k;
@@ -62,6 +63,9 @@ fprintf('\n\nМЕТОД НЬЮТОНА\n');
 f1 = @(x1, x2) sin(x1 + 1) - x2 - 1;
 f2 = @(x1, x2) 2*x1 + cos(x2) - 2;
 J = @(x1, x2) [cos(x1 + 1), -1; 2, -sin(x2)];
+
+x1_0 = 0.3;
+x2_0 = -0.5;
 
 x1_prev = x1_0;
 x2_prev = x2_0;
