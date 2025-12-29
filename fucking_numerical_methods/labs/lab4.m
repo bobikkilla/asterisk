@@ -1,24 +1,47 @@
 disp("Running");
 function y = func_val(x)
-  y = (2 .* (x.^2) + 6) ./ (x.^2 - 2 .* x + 5);
+  y = (2 .* (x.^2) + 6) ./ (x.^2 - 2 .* x + 5); % original
+  % y =  (x.^2) - sqrt(x + 1); % test 1
+  % y = tan(x + sqrt(x)); % test 2
+  % y = (x.^2) - 2 .* x + (16 ./ (x - 1)) - 13; % test 3
+  % y = exp(sin(sqrt(x))); % test 4
 end
 
+% ravnomernye uzly setki
 xrnodes = [];
 funcr = [];
 
+% Original
 a = -3;
 b = 3;
 
+% test 1
+% a = 0;
+% b = 3;
+
+% test 2
+% a = 0.1;
+% b = 0.7;
+
+% test 3
+% a = 2;
+% b = 5;
+
+% test 4
+% a = 1;
+% b = 4;
+
 for i = 0:3
-  xrnodes(i + 1) = a + i * (b - a) / 3;
+  xrnodes(i + 1) = a + i * ((b - a)/ 3);
   funcr(i + 1) = func_val(xrnodes(i + 1));
 end
 
+% Chebyshevskaya setka
 xcnodes = [];
 funcc = [];
 
 for i = 0:3
-  xcnodes(i + 1) = (a + b) / 2 + (b - a) / 2 * cos((2*i +1) / 8 * pi());
+  xcnodes(i + 1) = (a + b) / 2 + ((b - a) / 2) * cos(((2*i + 1)/ 8) * pi());
   funcc(i + 1) = func_val(xcnodes(i + 1));
 end
 
@@ -65,23 +88,23 @@ function P = newton_eval(coeff, x, x0)
     return;
 end
 
-printf("j        f(xj)        Lr(xj)       |f(xj) - Lr(xj)|            Lc(xj)         |f(xj) - Lc(xj)|\n");
+printf("xj\tf(xj)\t\tLr(xj)\t\t|f(xj)-Lr(xj)|\t\tLc(xj)\t\t|f(xj)-Lc(xj)|\n");
 x = [(5*a + b)/6, (a + b)/2, (a + 5*b)/6];
 for j = 1:3
   Lr = lagrange_interpolation(xrnodes, funcr, x(j));
   f = func_val(x(j));
   Lc = lagrange_interpolation(xcnodes, funcc, x(j));
-  printf("%d      %f       %f      %f      %f      %f\n", j, f, Lr, abs(f - Lr), Lc, abs(f - Lc));
+  printf("%d\t%f\t%f\t\t%f\t%f\t%f\n", j, f, Lr, abs(f - Lr), Lc, abs(f - Lc));
 end
 
 disp("\n");
 
-printf("j        f(xj)        Pr(xj)         |f(xj) - Pr(xj)|            Pc(xj)         |f(xj) - Pc(xj)|\n");
+printf("xj\tf(xj)\t\tPr(xj)\t\t|f(xj)-Pr(xj)|\t\tPc(xj)\t\t|f(xj)-Pc(xj)|\n");
 for j = 1:3
   Lr = newton_interpolation(xrnodes, funcr, x(j));
   f = func_val(x(j));
   Lc = newton_interpolation(xcnodes, funcc, x(j));
-  printf("%2d %10f %10f %10f %10f %10f\n", j, f, Lr, abs(f - Lr), Lc, abs(f - Lc));
+  printf("%d\t%10f\t%10f\t%10f\t\t%10f\t%10f\n", j, f, Lr, abs(f - Lr), Lc, abs(f - Lc));
 end
 
 x = [a:0.001:b];
